@@ -1,4 +1,5 @@
 const skygear = require('skygear');
+const QueryResult = require('skygear/dist/query_result');
 
 function SkygearSocialFeedContainer() {
 
@@ -23,6 +24,22 @@ function SkygearSocialFeedContainer() {
       return Promise.resolve(response);
     }, function(error) {
       console.log('Error when create index', error);
+    });
+  }
+
+  this.queryMyFriendsRecords = function queryMyFriendsRecords(query) {
+    const Cls = query.recordCls;
+    const serializedQuery = query.toJSON();
+    return skygear.lambda('social_feed:query_my_friends_records', [
+      serializedQuery
+    ]).then(function(response) {
+      const records = response.result.map(function (attrs) {
+        return new Cls(attrs);
+      });
+      const result = QueryResult.createFromResult(records);
+      return Promise.resolve(result);
+    }, function(error) {
+      return Promise.reject(error);
     });
   }
 

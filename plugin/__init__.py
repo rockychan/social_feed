@@ -194,3 +194,57 @@ def social_feed_create_index(maybe_my_friends):
                 my_user_id=my_user_id,
                 my_friend_ids=my_friend_ids_tuple
             )
+
+
+@op('social_feed:query_my_friends_records', user_required=True)
+def social_feed_query_my_friends_records(serializedSkygearQuery):
+    with db.conn() as conn:
+        query_record_type = serializedSkygearQuery['record_type']
+        table_name = table_name_for_relation_index(
+            prefix=SOCIAL_FEED_TABLE_PREFIX,
+            relation='friends',
+            record_type=query_record_type
+        )
+        my_user_id = skygear.utils.context.current_user_id()
+        get_my_friends_records_ids_sql = sa.text('''
+            SELECT record_ref as id
+            FROM {db_name}.{table_name}
+            WHERE left_id = :my_user_id
+        '''.format(db_name=DB_NAME, table_name=table_name))
+        results = conn.execute(
+            get_my_friends_records_ids_sql,
+            my_user_id=my_user_id
+        )
+
+        records_ids = [record.id for record in results]
+
+        if 'predicate' in serializedSkygearQuery:
+            pass
+            original_predicate = serializedSkygearQuery['predicate']
+            serializedSkygearQuery['predicate'] = [
+                'and',
+                [
+                    'in',
+                    {
+                        '$type': 'keypath',
+                        '$val': '_id'
+                    },
+                    records_ids
+                ],
+                original_predicate
+            ]
+        else:
+            serializedSkygearQuery['predicate'] = [
+                'in',
+                {
+                    '$type': 'keypath',
+                    '$val': '_id'
+                },
+                records_ids
+            ]
+
+        container = SkygearContainer(api_key=options.apikey)
+        return container.send_action(
+            'record:query',
+            serializedSkygearQuery
+        )

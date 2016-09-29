@@ -125,6 +125,11 @@ function SkygearSocialFeedContainer() {
     });
   }
 
+  this.reindexSocialFeedIndexForFriends =
+    function reindexSocialFeedIndexForFriends() {
+      return skygear.lambda('social_feed:reindex_for_friends');
+    }
+
 }
 
 module.exports = new SkygearSocialFeedContainer();

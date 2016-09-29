@@ -476,6 +476,80 @@ def remove_index_for_followees(followees):
             )
 
 
+@op('social_feed:reindex_for_friends', user_required=True)
+def reindex_for_friends():
+    with db.conn() as conn:
+        my_user_id = skygear.utils.context.current_user_id()
+
+        for record_type in SOCIAL_FEED_RECORD_TYPES:
+            table_name = table_name_for_relation_index(
+                prefix=SOCIAL_FEED_TABLE_PREFIX,
+                relation='friends',
+                record_type=record_type
+            )
+
+            remove_current_index_sql = sa.text('''
+                DELETE FROM {db_name}.{table_name}
+                WHERE left_id = :my_user_id
+            '''.format(db_name=DB_NAME, table_name=table_name))
+            conn.execute(
+                remove_current_index_sql,
+                my_user_id=my_user_id
+            )
+
+            create_my_friends_records_index_sql = sa.text('''
+                INSERT INTO {db_name}.{table_name} (
+                    _id,
+                    _database_id,
+                    _owner_id,
+                    _created_at,
+                    _created_by,
+                    _updated_at,
+                    _updated_by,
+                    _access,
+                    left_id,
+                    right_id,
+                    record_ref
+                )
+                SELECT
+                    uuid_generate_v4() as _id,
+                    '' as _database_id,
+                    :my_user_id as _owner_id,
+                    current_timestamp as _created_at,
+                    :my_user_id as _created_by,
+                    current_timestamp as _updated_at,
+                    :my_user_id as _updated_by,
+                    '[]'::jsonb as _access,
+                    :my_user_id as left_id,
+                    _owner_id as right_id,
+                    _id as record_ref
+                FROM {db_name}.{record_type} record_table
+                WHERE _owner_id in (
+                    SELECT f1.right_id as id
+                    FROM {db_name}._friend f1
+                    JOIN {db_name}._friend f2
+                    ON f1.right_id = f2.left_id
+                    WHERE f1.left_id = :my_user_id
+                    AND f2.right_id = :my_user_id
+                )
+                AND NOT EXISTS (
+                    SELECT *
+                    FROM {db_name}.{table_name}
+                    WHERE left_id=:my_user_id
+                    AND right_id IN (record_table._owner_id)
+                    AND record_ref IN (record_table._id)
+                )
+            '''.format(
+                db_name=DB_NAME,
+                table_name=table_name,
+                record_type=record_type
+            ))
+            conn.execute(
+                create_my_friends_records_index_sql,
+                my_user_id=my_user_id,
+            )
+
+
 def add_record_to_index_for_friends(record_type):
     def after_save_add_record_to_index_for_friends(record, original_record, db):
         if original_record is not None:

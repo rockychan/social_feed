@@ -151,7 +151,7 @@ def social_feed_create_index(maybe_my_friends):
                 record_type=record_type
             )
 
-            create_index_sql = sa.text('''
+            create_my_friends_records_index_sql = sa.text('''
                 INSERT INTO {db_name}.{table_name} (
                     _id,
                     _database_id,
@@ -192,7 +192,55 @@ def social_feed_create_index(maybe_my_friends):
                 record_type=record_type
             ))
             conn.execute(
-                create_index_sql,
+                create_my_friends_records_index_sql,
+                my_user_id=my_user_id,
+                my_friend_ids=my_friend_ids_tuple
+            )
+
+            create_friends_to_my_records_index_sql = sa.text('''
+                INSERT INTO {db_name}.{table_name} (
+                    _id,
+                    _database_id,
+                    _owner_id,
+                    _created_at,
+                    _created_by,
+                    _updated_at,
+                    _updated_by,
+                    _access,
+                    left_id,
+                    right_id,
+                    record_ref
+                )
+                SELECT
+                    uuid_generate_v4() as _id,
+                    '' as _database_id,
+                    u.id as _owner_id,
+                    current_timestamp as _created_at,
+                    u.id as _created_by,
+                    current_timestamp as _updated_at,
+                    u.id as _updated_by,
+                    '[]'::jsonb as _access,
+                    u.id as left_id,
+                    :my_user_id as right_id,
+                    record_table._id as record_ref
+                FROM {db_name}.{record_type} record_table,
+                     {db_name}._user u
+                WHERE record_table._owner_id = :my_user_id
+                AND u.id in :my_friend_ids
+                AND NOT EXISTS (
+                    SELECT *
+                    FROM {db_name}.{table_name}
+                    WHERE right_id = :my_user_id
+                    AND left_id IN :my_friend_ids
+                    AND record_ref IN (record_table._id)
+                )
+            '''.format(
+                db_name=DB_NAME,
+                table_name=table_name,
+                record_type=record_type
+            ))
+            conn.execute(
+                create_friends_to_my_records_index_sql,
                 my_user_id=my_user_id,
                 my_friend_ids=my_friend_ids_tuple
             )

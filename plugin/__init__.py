@@ -108,6 +108,10 @@ def social_feed_init():
     for record_type in SOCIAL_FEED_RECORD_TYPES:
         create_table_for_social_feed(container, record_type);
 
+    with db.conn() as conn:
+        sql = 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'
+        conn.execute(sql)
+
 
 @op('social_feed:create_index', user_required=True)
 def social_feed_create_index(maybe_my_friends):
@@ -160,7 +164,7 @@ def social_feed_create_index(maybe_my_friends):
                     record_ref
                 )
                 SELECT
-                    :uuid as _id,
+                    uuid_generate_v4() as _id,
                     '' as _database_id,
                     :my_user_id as _owner_id,
                     current_timestamp as _created_at,
@@ -171,13 +175,14 @@ def social_feed_create_index(maybe_my_friends):
                     :my_user_id as left_id,
                     _owner_id as right_id,
                     _id as record_ref
-                FROM {db_name}.{record_type}
+                FROM {db_name}.{record_type} record_table
                 WHERE _owner_id in :my_friend_ids
                 AND NOT EXISTS (
                     SELECT *
                     FROM {db_name}.{table_name}
                     WHERE left_id=:my_user_id
-                    AND right_id IN :my_friend_ids
+                    AND right_id IN (record_table._owner_id)
+                    AND record_ref IN (record_table._id)
                 )
             '''.format(
                 db_name=DB_NAME,
@@ -186,7 +191,6 @@ def social_feed_create_index(maybe_my_friends):
             ))
             conn.execute(
                 create_index_sql,
-                uuid=uuid.uuid4(),
                 my_user_id=my_user_id,
                 my_friend_ids=my_friend_ids_tuple
             )

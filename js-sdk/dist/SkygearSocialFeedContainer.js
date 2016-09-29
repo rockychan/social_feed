@@ -44,6 +44,19 @@ function SkygearSocialFeedContainer() {
     });
   }
 
+  this.removeFollowing = function removeFollowing(user) {
+    return this.removeFollowings([user]);
+  }
+
+  this.removeFollowings = function removeFollowings(users) {
+    const unFollow = new skygear.relation.Following(users);
+    const context = this;
+    return skygear.relation.remove(unFollow).then(function(response) {
+      context.removeSocialFeedIndexForFollowees(unFollow);
+      return Promise.resolve(response);
+    });
+  }
+
   this.createSocialFeedIndexForFriends =
     function createSocialFeedIndexForFriends(mayBeMyFriends) {
       return skygear.lambda('social_feed:create_index_for_friends', [
@@ -70,6 +83,13 @@ function SkygearSocialFeedContainer() {
     function removeSocialFeedIndexForFriends(friends) {
       return skygear.lambda('social_feed:remove_index_for_friends', [
         friends
+      ]);
+    }
+
+  this.removeSocialFeedIndexForFollowees =
+    function removeSocialFeedIndexForFollowees(followees) {
+      return skygear.lambda('social_feed:remove_index_for_followees', [
+        followees
       ]);
     }
 

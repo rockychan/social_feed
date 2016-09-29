@@ -1,0 +1,161 @@
+<html>
+  <head>
+    <title>Skygear Social Feed demo</title>
+    <script>
+      var $ = function(_id) {
+        return document.getElementById(_id);
+      }
+
+      function inputVal(_id) {
+        return $(_id).value;
+      }
+
+      function createElement(tag) {
+        return document.createElement(tag);
+      }
+
+      function removeElement(el) {
+        el.parentNode.removeChild(el);
+      }
+
+    </script>
+    <script src="./index.js"></script>
+    <script src="./demo.js"></script>
+  </head>
+  <body>
+    <h1>Skygear Social Feed demo</h1>
+    <div id="config-skygear">
+      <p>
+        <label>Skygear Endpoint</label><br>
+        <input
+          id="endPoint"
+          type="text"
+          value="http://192.168.1.121:3000/"
+        />
+      </p>
+      <p>
+        <label>Skygear API Key</label><br>
+        <input
+          id="apiKey"
+          type="text"
+          value="my_skygear_key"
+        />
+      </p>
+      <p>
+        <button
+          id="config-skygear-button"
+          onclick="configSkygear()"
+          >
+          Apply EndPoint and API KEY
+        </button>
+      </p>
+    </div>
+
+    <div id="login-signup-section">
+      <p>
+        <label>Username</label><br>
+        <input
+          id="username"
+          type="text"
+          value="yinyin"
+        >
+      </p>
+      <p>
+        <label>Password</label><br>
+        <input
+          id="password"
+          type="password"
+          value="ab1234"
+        >
+      </p>
+      <button
+        id="signup-button"
+        onclick="signUp()"
+        >
+        Sign up
+      </button>
+      <button
+        id="login-button"
+        onclick="login()"
+        >
+        Log in
+      </button>
+    </div>
+
+    <div id="after-login-section">
+      <div id="user-section">
+        <label style="font-size: 20px;">You are:</label>
+        <label id="currentUsername"></label>
+      </div>
+      <div>
+        <button onclick="postSomething()">Post something...</button><br>
+        <button onclick="reindex()">Reindex my friends' posts</button>
+      </div>
+      <div id="all-users">
+        <h3>All Users</h3>
+        <button onclick="fetchAllUsers()">Fetch all users</button>
+      </div>
+      <div id="my-friends">
+        <h3>My Friends</h3>
+        <button onclick="fetchAllMyFriends()">Fetch all my friends</button>
+      </div>
+      <div id="all-my-friends-posts">
+        <button onclick="fetchAllMyFriendsPosts()">Get my friends post</button>
+      </div>
+    </div>
+
+    <script>
+      function configSkygear() {
+        var endPoint = inputVal('endPoint');
+        var apiKey = inputVal('apiKey');
+        demo.configSkygear(endPoint, apiKey);
+      }
+
+      function signUp() {
+        var username = inputVal('username');
+        var password = inputVal('password');
+        demo.signUp(username, password);
+      }
+
+      function login() {
+        var username = inputVal('username');
+        var password = inputVal('password');
+        demo.login(username, password);
+      }
+
+      function fetchAllUsers() {
+        demo.fetchAndShowAllUsers();
+      }
+
+      function addFriend(userID) {
+        demo.addFriend(userID);
+      }
+
+      function removeFriend(userID) {
+        demo.removeFriend(userID);
+      }
+
+      function fetchAllMyFriends() {
+        demo.fetchAllMyFriends(); 
+      }
+
+      function queryFriendPosts(userID) {
+      }
+
+      function postSomething() {
+        demo.postSomething();
+      }
+
+      function fetchAllMyFriendsPosts() {
+        demo.fetchAllMyFriendsPosts();
+      }
+
+      function reindex() {
+        demo.reindex();
+      }
+    </script>
+    <script>
+      var demo = new Demo(skygear, SkygearSocialFeedContainer);
+    </script>
+  </body>
+</html>

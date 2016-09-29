@@ -69,6 +69,22 @@ function SkygearSocialFeedContainer() {
     });
   }
 
+  this.queryMyFolloweesRecords = function queryMyFolloweesRecords(query) {
+    const Cls = query.recordCls;
+    const serializedQuery = query.toJSON();
+    return skygear.lambda('social_feed:query_my_followees_records', [
+      serializedQuery
+    ]).then(function(response) {
+      const records = response.result.map(function (attrs) {
+        return new Cls(attrs);
+      });
+      const result = QueryResult.createFromResult(records);
+      return Promise.resolve(result);
+    }, function(error) {
+      return Promise.reject(error);
+    });
+  }
+
 }
 
 module.exports = new SkygearSocialFeedContainer();

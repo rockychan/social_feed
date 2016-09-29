@@ -1,0 +1,31 @@
+{
+  "name": "skygear_social_feed",
+  "version": "1.0.0",
+  "description": "Skygear social feed",
+  "main": "js-sdk/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint js-sdk/dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cychiuae/social_feed.git"
+  },
+  "keywords": [
+    "skygear",
+    "social",
+    "feed"
+  ],
+  "author": "YinYin Chiu",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/cychiuae/social_feed/issues"
+  },
+  "homepage": "https://github.com/cychiuae/social_feed#readme",
+  "dependencies": {
+    "skygear": "^0.17.0"
+  },
+  "eslintConfig": {
+    "extends": "google"
+  }
+}

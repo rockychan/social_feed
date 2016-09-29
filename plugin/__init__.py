@@ -9,6 +9,10 @@ from skygear.container import SkygearContainer
 from skygear.options import options
 from skygear.utils import db
 import sqlalchemy as sa
+from .table_name import (
+    name_for_followings_relation_index,
+    name_for_friends_relation_index
+)
 
 SKYGEAR_APP_NAME = os.getenv('APP_NAME', 'my_skygear_app')
 SOCIAL_FEED_TABLE_PREFIX = 'skygear_social_feed'
@@ -19,19 +23,9 @@ SOCIAL_FEED_RECORD_TYPES = json.loads(
 DB_NAME = 'app_' + SKYGEAR_APP_NAME
 
 
-def table_name_for_relation_index(prefix, relation, record_type):
-    table_name_format = '{prefix}_{relation}_{record_type}'
-    return table_name_format.format(
-        prefix=prefix,
-        relation=relation,
-        record_type=record_type
-    )
-
-
 def create_table_for_social_feed(container, record_type):
-    table_name_for_following_relation = table_name_for_relation_index(
-        prefix=SOCIAL_FEED_TABLE_PREFIX,
-        relation='following',
+    table_name_for_following_relation = name_for_followings_relation_index(
+        prefix=SOCIAL_FEED_RECORD_TYPES,
         record_type=record_type
     )
     container.send_action(
@@ -58,9 +52,8 @@ def create_table_for_social_feed(container, record_type):
         }
     )
 
-    table_name_for_friends_relation = table_name_for_relation_index(
+    table_name_for_friends_relation = name_for_friends_relation_index(
         prefix=SOCIAL_FEED_TABLE_PREFIX,
-        relation='friends',
         record_type=record_type
     )
     container.send_action(
@@ -145,9 +138,8 @@ def social_feed_create_index_for_friends(maybe_my_friends):
         my_friend_ids_tuple = tuple(my_friend_ids)
 
         for record_type in SOCIAL_FEED_RECORD_TYPES:
-            table_name = table_name_for_relation_index(
+            table_name = name_for_friends_relation_index(
                 prefix=SOCIAL_FEED_TABLE_PREFIX,
-                relation='friends',
                 record_type=record_type
             )
 
@@ -250,9 +242,8 @@ def social_feed_create_index_for_friends(maybe_my_friends):
 def social_feed_query_my_friends_records(serializedSkygearQuery):
     with db.conn() as conn:
         query_record_type = serializedSkygearQuery['record_type']
-        table_name = table_name_for_relation_index(
+        table_name = name_for_friends_relation_index(
             prefix=SOCIAL_FEED_TABLE_PREFIX,
-            relation='friends',
             record_type=query_record_type
         )
         my_user_id = skygear.utils.context.current_user_id()
@@ -304,9 +295,8 @@ def social_feed_query_my_friends_records(serializedSkygearQuery):
 def query_my_followees_records(serializedSkygearQuery):
     with db.conn() as conn:
         query_record_type = serializedSkygearQuery['record_type']
-        table_name = table_name_for_relation_index(
+        table_name = name_for_followings_relation_index(
             prefix=SOCIAL_FEED_TABLE_PREFIX,
-            relation='following',
             record_type=query_record_type
         )
         my_user_id = skygear.utils.context.current_user_id()
@@ -365,9 +355,8 @@ def create_index_for_followee(followees):
         my_followees_ids_tuple = tuple(my_followees_ids)
 
         for record_type in SOCIAL_FEED_RECORD_TYPES:
-            table_name = table_name_for_relation_index(
+            table_name = name_for_followings_relation_index(
                 prefix=SOCIAL_FEED_TABLE_PREFIX,
-                relation='following',
                 record_type=record_type
             )
 
@@ -429,9 +418,8 @@ def remove_index_for_friends(friends):
         my_friends_ids_tuple = tuple(my_friends_ids)
 
         for record_type in SOCIAL_FEED_RECORD_TYPES:
-            table_name = table_name_for_relation_index(
+            table_name = name_for_friends_relation_index(
                 prefix=SOCIAL_FEED_TABLE_PREFIX,
-                relation='friends',
                 record_type=record_type
             )
 
@@ -458,9 +446,8 @@ def remove_index_for_followees(followees):
         my_followees_ids_tuple = tuple(my_followees_ids)
 
         for record_type in SOCIAL_FEED_RECORD_TYPES:
-            table_name = table_name_for_relation_index(
+            table_name = name_for_followings_relation_index(
                 prefix=SOCIAL_FEED_TABLE_PREFIX,
-                relation='following',
                 record_type=record_type
             )
 
@@ -482,9 +469,8 @@ def reindex_for_friends():
         my_user_id = skygear.utils.context.current_user_id()
 
         for record_type in SOCIAL_FEED_RECORD_TYPES:
-            table_name = table_name_for_relation_index(
+            table_name = name_for_friends_relation_index(
                 prefix=SOCIAL_FEED_TABLE_PREFIX,
-                relation='friends',
                 record_type=record_type
             )
 
@@ -556,9 +542,8 @@ def reindex_for_followees():
         my_user_id = skygear.utils.context.current_user_id()
 
         for record_type in SOCIAL_FEED_RECORD_TYPES:
-            table_name = table_name_for_relation_index(
+            table_name = name_for_followings_relation_index(
                 prefix=SOCIAL_FEED_TABLE_PREFIX,
-                relation='following',
                 record_type=record_type
             )
 
@@ -629,9 +614,8 @@ def add_record_to_index_for_friends(record_type):
         record_id = record.id.key
         record_owner_id = record.owner_id
 
-        table_name = table_name_for_relation_index(
+        table_name = name_for_friends_relation_index(
             prefix=SOCIAL_FEED_TABLE_PREFIX,
-            relation='friends',
             record_type=record_type
         )
 
@@ -691,9 +675,8 @@ def add_record_to_index_for_followers(record_type):
         record_id = record.id.key
         record_owner_id = record.owner_id
 
-        table_name = table_name_for_relation_index(
+        table_name = name_for_followings_relation_index(
             prefix=SOCIAL_FEED_TABLE_PREFIX,
-            relation='following',
             record_type=record_type
         )
 

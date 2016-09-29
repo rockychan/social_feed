@@ -12,20 +12,46 @@ function SkygearSocialFeedContainer() {
     const context = this;
     return skygear.relation.add(beFriend).then(function(response) {
       const maybeMyFriends = response.success;
-      context.createSocialFeedIndex(maybeMyFriends);
+      context.createSocialFeedIndexForFriends(maybeMyFriends);
       return Promise.resolve(response);
     });
   }
 
-  this.createSocialFeedIndex = function createSocialFeedIndex(mayBeMyFriends) {
-    return skygear.lambda('social_feed:create_index', [
-      mayBeMyFriends
-    ]).then(function(response) {
+  this.addFollowing = function addFollowing(user) {
+    return this.addFollowings([user]);
+  }
+
+  this.addFollowings = function addFollowings(users) {
+    const toFollow = new skygear.relation.Following(users);
+    const context = this;
+    return skygear.relation.add(toFollow).then(function(response) {
+      const followees = response.success;
+      context.createSocialFeedIndexForFollowees(followees);
       return Promise.resolve(response);
-    }, function(error) {
-      console.log('Error when create index', error);
     });
   }
+
+  this.createSocialFeedIndexForFriends =
+    function createSocialFeedIndexForFriends(mayBeMyFriends) {
+      return skygear.lambda('social_feed:create_index_for_friends', [
+        mayBeMyFriends
+      ]).then(function(response) {
+        return Promise.resolve(response);
+      }, function(error) {
+        console.log('Error when create index', error);
+      });
+    }
+
+  this.createSocialFeedIndexForFollowees =
+    function createSocialFeedIndexForFollowees(followees) {
+      return skygear.lambda('social_feed:create_index_for_followees', [
+        followees
+      ]).then(function(response) {
+        return Promise.resolve(response);
+      }, function(error) {
+        console.log('Error when create index', error);
+      });
+    }
 
   this.queryMyFriendsRecords = function queryMyFriendsRecords(query) {
     const Cls = query.recordCls;

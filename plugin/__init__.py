@@ -115,8 +115,8 @@ def social_feed_init():
         conn.execute(sql)
 
 
-@op('social_feed:create_index', user_required=True)
-def social_feed_create_index(maybe_my_friends):
+@op('social_feed:create_index_for_friends', user_required=True)
+def social_feed_create_index_for_friends(maybe_my_friends):
     if len(maybe_my_friends) <= 0:
         return
 
@@ -300,8 +300,72 @@ def social_feed_query_my_friends_records(serializedSkygearQuery):
         )
 
 
-def add_record_to_index(record_type):
-    def after_save_add_record_to_index(record, original_record, db):
+@op('social_feed:create_index_for_followees', user_required=True)
+def create_index_for_followee(followees):
+    if len(followees) <= 0:
+        return
+
+    with db.conn() as conn:
+        my_user_id = skygear.utils.context.current_user_id()
+        my_followees_ids = [followee['user_id'] for followee in followees]
+        my_followees_ids_tuple = tuple(my_followees_ids)
+
+        for record_type in SOCIAL_FEED_RECORD_TYPES:
+            table_name = table_name_for_relation_index(
+                prefix=SOCIAL_FEED_TABLE_PREFIX,
+                relation='following',
+                record_type=record_type
+            )
+
+            create_my_followees_records_index_sql = sa.text('''
+                INSERT INTO {db_name}.{table_name} (
+                    _id,
+                    _database_id,
+                    _owner_id,
+                    _created_at,
+                    _created_by,
+                    _updated_at,
+                    _updated_by,
+                    _access,
+                    left_id,
+                    right_id,
+                    record_ref
+                )
+                SELECT
+                    uuid_generate_v4() as _id,
+                    '' as _database_id,
+                    :my_user_id as _owner_id,
+                    current_timestamp as _created_at,
+                    :my_user_id as _created_by,
+                    current_timestamp as _updated_at,
+                    :my_user_id as _updated_by,
+                    '[]'::jsonb as _access,
+                    :my_user_id as left_id,
+                    _owner_id as right_id,
+                    _id as record_ref
+                FROM {db_name}.{record_type} record_table
+                WHERE _owner_id in :my_followees_ids
+                AND NOT EXISTS (
+                    SELECT *
+                    FROM {db_name}.{table_name}
+                    WHERE left_id=:my_user_id
+                    AND right_id IN (record_table._owner_id)
+                    AND record_ref IN (record_table._id)
+                )
+            '''.format(
+                db_name=DB_NAME,
+                table_name=table_name,
+                record_type=record_type
+            ))
+            conn.execute(
+                create_my_followees_records_index_sql,
+                my_user_id=my_user_id,
+                my_followees_ids=my_followees_ids_tuple
+            )
+
+
+def add_record_to_index_for_friends(record_type):
+    def after_save_add_record_to_index_for_friends(record, original_record, db):
         if original_record is not None:
             return
 
@@ -358,8 +422,76 @@ def add_record_to_index(record_type):
             record_id=record_id
         )
 
-    return after_save_add_record_to_index
+    return after_save_add_record_to_index_for_friends
+
+
+def add_record_to_index_for_followers(record_type):
+    def after_save_add_record_to_index_for_followers(record, original_record,
+                                                     db):
+        if original_record is not None:
+            return
+
+        record_id = record.id.key
+        record_owner_id = record.owner_id
+
+        table_name = table_name_for_relation_index(
+            prefix=SOCIAL_FEED_TABLE_PREFIX,
+            relation='following',
+            record_type=record_type
+        )
+
+        create_index_sql = sa.text('''
+            INSERT INTO {db_name}.{table_name} (
+                _id,
+                _database_id,
+                _owner_id,
+                _created_at,
+                _created_by,
+                _updated_at,
+                _updated_by,
+                _access,
+                left_id,
+                right_id,
+                record_ref
+            )
+            SELECT
+                uuid_generate_v4() as _id,
+                '' as _database_id,
+                f.left_id as _owner_id,
+                current_timestamp as _created_at,
+                f.left_id as _created_by,
+                current_timestamp as _updated_at,
+                f.left_id as _created_by,
+                '[]'::jsonb as _access,
+                f.left_id as left_id,
+                :record_owner_id as right_id,
+                :record_id as record_ref
+            FROM {db_name}._follow f
+            WHERE f.right_id = :record_owner_id
+        '''.format(
+            db_name=DB_NAME,
+            table_name=table_name,
+            record_type=record_type
+        ))
+
+        db.execute(
+            create_index_sql,
+            record_owner_id=record_owner_id,
+            record_id=record_id
+        )
+
+    return after_save_add_record_to_index_for_followers
+
 
 for record_type in SOCIAL_FEED_RECORD_TYPES:
-    after_save_add_record_to_index = add_record_to_index(record_type)
-    after_save(record_type, async=True)(after_save_add_record_to_index)
+    after_save_add_record_to_index_for_friends = \
+        add_record_to_index_for_friends(record_type)
+    after_save(record_type, async=True)(
+        after_save_add_record_to_index_for_friends
+    )
+
+    after_save_add_record_to_index_for_followers = \
+        add_record_to_index_for_followers(record_type)
+    after_save(record_type, async=True)(
+        after_save_add_record_to_index_for_followers
+    )

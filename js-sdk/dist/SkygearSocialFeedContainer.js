@@ -31,6 +31,19 @@ function SkygearSocialFeedContainer() {
     });
   }
 
+  this.removeFriend = function removeFriend(user) {
+    return this.removeFriends([user]);
+  }
+
+  this.removeFriends = function removeFriends(users) {
+    const unFriends = new skygear.relation.Friend(users);
+    const context = this;
+    return skygear.relation.remove(unFriends).then(function(response) {
+      context.removeSocialFeedIndexForFriends(users);
+      return Promise.resolve(response);
+    });
+  }
+
   this.createSocialFeedIndexForFriends =
     function createSocialFeedIndexForFriends(mayBeMyFriends) {
       return skygear.lambda('social_feed:create_index_for_friends', [
@@ -51,6 +64,13 @@ function SkygearSocialFeedContainer() {
       }, function(error) {
         console.log('Error when create index', error);
       });
+    }
+
+  this.removeSocialFeedIndexForFriends =
+    function removeSocialFeedIndexForFriends(friends) {
+      return skygear.lambda('social_feed:remove_index_for_friends', [
+        friends
+      ]);
     }
 
   this.queryMyFriendsRecords = function queryMyFriendsRecords(query) {

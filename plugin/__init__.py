@@ -418,6 +418,35 @@ def create_index_for_followee(followees):
             )
 
 
+@op('social_feed:remove_index_for_friends', user_required=True)
+def remove_index_for_friends(friends):
+    if len(friends) <= 0:
+        return
+
+    with db.conn() as conn:
+        my_user_id = skygear.utils.context.current_user_id()
+        my_friends_ids = [friend['user_id'] for friend in friends]
+        my_friends_ids_tuple = tuple(my_friends_ids)
+
+        for record_type in SOCIAL_FEED_RECORD_TYPES:
+            table_name = table_name_for_relation_index(
+                prefix=SOCIAL_FEED_TABLE_PREFIX,
+                relation='friends',
+                record_type=record_type
+            )
+
+            remove_my_friends_records_sql = sa.text('''
+                DELETE from {db_name}.{table_name}
+                WHERE (left_id = :my_user_id AND right_id in :my_friends_ids)
+                OR (right_id = :my_user_id AND left_id in :my_friends_ids)
+            '''.format(db_name=DB_NAME, table_name=table_name))
+            conn.execute(
+                remove_my_friends_records_sql,
+                my_user_id=my_user_id,
+                my_friends_ids=my_friends_ids_tuple
+            )
+
+
 def add_record_to_index_for_friends(record_type):
     def after_save_add_record_to_index_for_friends(record, original_record, db):
         if original_record is not None:

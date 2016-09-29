@@ -80,6 +80,7 @@ def create_table_for_social_feed(container, record_type):
         }
     )
 
+
 @op('social-feed-init')
 def social_feed_init():
     container = SkygearContainer(api_key=options.masterkey)
@@ -101,7 +102,7 @@ def social_feed_init():
     )
 
     for record_type in SOCIAL_FEED_RECORD_TYPES:
-        create_table_for_social_feed(container, record_type);
+        create_table_for_social_feed(container, record_type)
 
     with db.conn() as conn:
         sql = 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'
@@ -607,7 +608,8 @@ def reindex_for_followees():
 
 
 def add_record_to_index_for_friends(record_type):
-    def after_save_add_record_to_index_for_friends(record, original_record, db):
+    def after_save_add_record_to_index_for_friends(record, original_record,
+                                                   db):
         if original_record is not None:
             return
 

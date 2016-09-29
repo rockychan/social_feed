@@ -130,6 +130,11 @@ function SkygearSocialFeedContainer() {
       return skygear.lambda('social_feed:reindex_for_friends');
     }
 
+  this.reindexSocialFeedIndexForFollowings =
+    function reindexSocialFeedIndexForFollowings() {
+      return skygear.lambda('social_feed:reindex_for_followees');
+    }
+
 }
 
 module.exports = new SkygearSocialFeedContainer();

@@ -25,7 +25,7 @@ DB_NAME = 'app_' + SKYGEAR_APP_NAME
 
 def create_table_for_social_feed(container, record_type):
     table_name_for_following_relation = name_for_followings_relation_index(
-        prefix=SOCIAL_FEED_RECORD_TYPES,
+        prefix=SOCIAL_FEED_TABLE_PREFIX,
         record_type=record_type
     )
     container.send_action(

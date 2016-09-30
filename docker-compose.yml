@@ -28,7 +28,7 @@ services:
       MASTER_KEY: my_master_key
       PLUGINS: SOCIAL_FEED
       SOCIAL_FEED_TRANSPORT: zmq
-      SOCIAL_FEED_PATH: forgot
+      SOCIAL_FEED_PATH: social_feed
       SOCIAL_FEED_ARGS: tcp://0.0.0.0:5555
       # GOMAXPROCS - The maximum number of Go threads for execution.
       # When unspecified, the default is the number of CPU available, which

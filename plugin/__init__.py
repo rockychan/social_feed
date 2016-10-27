@@ -607,7 +607,9 @@ def reindex_for_followees():
             )
 
 
-def add_record_to_index_for_friends(record_type):
+def register_after_save_add_record_to_index_for_friends(record_type):
+
+    @after_save(record_type, async=True)
     def after_save_add_record_to_index_for_friends(record, original_record,
                                                    db):
         if original_record is not None:
@@ -668,7 +670,9 @@ def add_record_to_index_for_friends(record_type):
     return after_save_add_record_to_index_for_friends
 
 
-def add_record_to_index_for_followers(record_type):
+def register_after_save_add_record_to_index_for_followers(record_type):
+
+    @after_save(record_type, async=True)
     def after_save_add_record_to_index_for_followers(record, original_record,
                                                      db):
         if original_record is not None:
@@ -722,18 +726,7 @@ def add_record_to_index_for_followers(record_type):
             record_id=record_id
         )
 
-    return after_save_add_record_to_index_for_followers
-
 
 for record_type in SOCIAL_FEED_RECORD_TYPES:
-    after_save_add_record_to_index_for_friends = \
-        add_record_to_index_for_friends(record_type)
-    after_save(record_type, async=True)(
-        after_save_add_record_to_index_for_friends
-    )
-
-    after_save_add_record_to_index_for_followers = \
-        add_record_to_index_for_followers(record_type)
-    after_save(record_type, async=True)(
-        after_save_add_record_to_index_for_followers
-    )
+    register_after_save_add_record_to_index_for_friends(record_type)
+    register_after_save_add_record_to_index_for_followers(record_type)

@@ -1,3 +1,4 @@
+import json
 import sqlalchemy as sa
 
 
@@ -22,3 +23,35 @@ def should_record_be_indexed(db_name, default_fanout_policy,
         return default_fanout_policy[relation]
 
     return False
+
+
+def setEnableToFanoutToRelation(db_name, conn, relation, user_id, enable):
+    get_user_fanout_policy_sql = sa.text('''
+        SELECT social_feed_fanout_policy as fanout_policy
+        FROM {db_name}.user
+        WHERE _id=:user_id
+    '''.format(db_name=db_name))
+    fanout_policy = conn.execute(
+        get_user_fanout_policy_sql,
+        user_id=user_id
+    ).first()[0]
+    if fanout_policy is None:
+        new_fanout_policy = {
+            relation: enable
+        }
+    else:
+        new_fanout_policy = fanout_policy
+        new_fanout_policy[relation] = enable
+
+    update_user_fanout_policy_sql = sa.text('''
+        UPDATE {db_name}.user
+        SET social_feed_fanout_policy_is_dirty = TRUE,
+        social_feed_fanout_policy = :new_fanout_policy ::jsonb
+        WHERE _id = :user_id
+    '''.format(db_name=db_name))
+    conn.execute(
+        update_user_fanout_policy_sql,
+        new_fanout_policy=json.dumps(new_fanout_policy),
+        user_id=user_id
+    )
+

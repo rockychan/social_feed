@@ -13,7 +13,10 @@ from .table_name import (
     name_for_followings_relation_index,
     name_for_friends_relation_index
 )
-from .user import should_record_be_indexed
+from .user import (
+    should_record_be_indexed,
+    setEnableToFanoutToRelation
+)
 
 SKYGEAR_APP_NAME = os.getenv('APP_NAME', 'my_skygear_app')
 SOCIAL_FEED_TABLE_PREFIX = 'skygear_social_feed'
@@ -105,6 +108,10 @@ def social_feed_init():
                             'name': 'social_feed_fanout_policy',
                             'type': 'json',
                         },
+                        {
+                            'name': 'social_feed_fanout_policy_is_dirty',
+                            'type': 'boolean',
+                        },
                     ]
                 }
             }
@@ -194,7 +201,7 @@ def social_feed_create_index_for_friends(maybe_my_friends):
                     record_table._owner_id = user_table._id
                     AND COALESCE(
                             user_table.social_feed_fanout_policy,
-                            :default_fanout_policy ::jsonb
+                            '{default_fanout_policy}'::jsonb
                         ) @> '{req_fanout_policy}'::jsonb IS TRUE
                 )
                 WHERE record_table._owner_id in :my_friend_ids
@@ -209,13 +216,13 @@ def social_feed_create_index_for_friends(maybe_my_friends):
                 db_name=DB_NAME,
                 table_name=table_name,
                 record_type=record_type,
+                default_fanout_policy=SOCIAL_FEED_FANOUT_POLICY_JSON_STR,
                 req_fanout_policy='{"friends": true}'
             ))
             conn.execute(
                 create_my_friends_records_index_sql,
                 my_user_id=my_user_id,
-                my_friend_ids=my_friend_ids_tuple,
-                default_fanout_policy=SOCIAL_FEED_FANOUT_POLICY_JSON_STR
+                my_friend_ids=my_friend_ids_tuple
             )
 
             if should_fanout_my_records:
@@ -422,7 +429,7 @@ def create_index_for_followee(followees):
                     record_table._owner_id = user_table._id
                     AND COALESCE(
                             user_table.social_feed_fanout_policy,
-                            :default_fanout_policy ::jsonb
+                            '{default_fanout_policy}'::jsonb
                         ) @> '{req_fanout_policy}'::jsonb IS TRUE
                 )
                 WHERE record_table._owner_id in :my_followees_ids
@@ -437,13 +444,13 @@ def create_index_for_followee(followees):
                 db_name=DB_NAME,
                 table_name=table_name,
                 record_type=record_type,
+                default_fanout_policy=SOCIAL_FEED_FANOUT_POLICY_JSON_STR,
                 req_fanout_policy='{"following": true}'
             ))
             conn.execute(
                 create_my_followees_records_index_sql,
                 my_user_id=my_user_id,
-                my_followees_ids=my_followees_ids_tuple,
-                default_fanout_policy=SOCIAL_FEED_FANOUT_POLICY_JSON_STR
+                my_followees_ids=my_followees_ids_tuple
             )
 
 
@@ -644,6 +651,19 @@ def reindex_for_followees():
                 create_my_friends_records_index_sql,
                 my_user_id=my_user_id,
             )
+
+
+@op('social_feed:setEnableFanoutToRelation', user_required=True)
+def setEnableFanoutToRelation(relation, enable):
+    with db.conn() as conn:
+        my_user_id = skygear.utils.context.current_user_id()
+        setEnableToFanoutToRelation(
+            db_name=DB_NAME,
+            conn=conn,
+            relation=relation,
+            user_id=my_user_id,
+            enable=enable
+        )
 
 
 def register_after_save_add_record_to_index_for_friends(record_type):

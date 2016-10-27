@@ -13,12 +13,18 @@ from .table_name import (
     name_for_followings_relation_index,
     name_for_friends_relation_index
 )
+from .user import should_record_be_indexed
 
 SKYGEAR_APP_NAME = os.getenv('APP_NAME', 'my_skygear_app')
 SOCIAL_FEED_TABLE_PREFIX = 'skygear_social_feed'
 SOCIAL_FEED_RECORD_TYPES = json.loads(
     os.getenv('SKYGEAR_SOCIAL_FEED_RECORD_TYPES', '[]')
 )
+SOCIAL_FEED_FANOUT_POLICY_JSON_STR = os.getenv(
+    'SKYGEAR_SOCIAL_FEED_FANOUT_POLICY',
+    '{"friends": true, "following": true}'
+)
+SOCIAL_FEED_FANOUT_POLICY = json.loads(SOCIAL_FEED_FANOUT_POLICY_JSON_STR)
 
 DB_NAME = 'app_' + SKYGEAR_APP_NAME
 
@@ -95,6 +101,10 @@ def social_feed_init():
                             'name': 'name',
                             'type': 'string',
                         },
+                        {
+                            'name': 'social_feed_fanout_policy',
+                            'type': 'json',
+                        },
                     ]
                 }
             }
@@ -138,6 +148,14 @@ def social_feed_create_index_for_friends(maybe_my_friends):
             return
         my_friend_ids_tuple = tuple(my_friend_ids)
 
+        should_fanout_my_records = should_record_be_indexed(
+            DB_NAME,
+            SOCIAL_FEED_RECORD_TYPES,
+            conn,
+            my_user_id,
+            'friends'
+        )
+
         for record_type in SOCIAL_FEED_RECORD_TYPES:
             table_name = name_for_friends_relation_index(
                 prefix=SOCIAL_FEED_TABLE_PREFIX,
@@ -168,10 +186,18 @@ def social_feed_create_index_for_friends(maybe_my_friends):
                     :my_user_id as _updated_by,
                     '[]'::jsonb as _access,
                     :my_user_id as left_id,
-                    _owner_id as right_id,
-                    _id as record_ref
+                    record_table._owner_id as right_id,
+                    record_table._id as record_ref
                 FROM {db_name}.{record_type} record_table
-                WHERE _owner_id in :my_friend_ids
+                JOIN {db_name}.user user_table
+                ON (
+                    record_table._owner_id = user_table._id
+                    AND COALESCE(
+                            user_table.social_feed_fanout_policy,
+                            :default_fanout_policy ::jsonb
+                        ) @> '{req_fanout_policy}'::jsonb IS TRUE
+                )
+                WHERE record_table._owner_id in :my_friend_ids
                 AND NOT EXISTS (
                     SELECT *
                     FROM {db_name}.{table_name}
@@ -182,61 +208,64 @@ def social_feed_create_index_for_friends(maybe_my_friends):
             '''.format(
                 db_name=DB_NAME,
                 table_name=table_name,
-                record_type=record_type
+                record_type=record_type,
+                req_fanout_policy='{"friends": true}'
             ))
             conn.execute(
                 create_my_friends_records_index_sql,
                 my_user_id=my_user_id,
-                my_friend_ids=my_friend_ids_tuple
+                my_friend_ids=my_friend_ids_tuple,
+                default_fanout_policy=SOCIAL_FEED_FANOUT_POLICY_JSON_STR
             )
 
-            create_friends_to_my_records_index_sql = sa.text('''
-                INSERT INTO {db_name}.{table_name} (
-                    _id,
-                    _database_id,
-                    _owner_id,
-                    _created_at,
-                    _created_by,
-                    _updated_at,
-                    _updated_by,
-                    _access,
-                    left_id,
-                    right_id,
-                    record_ref
+            if should_fanout_my_records:
+                create_friends_to_my_records_index_sql = sa.text('''
+                    INSERT INTO {db_name}.{table_name} (
+                        _id,
+                        _database_id,
+                        _owner_id,
+                        _created_at,
+                        _created_by,
+                        _updated_at,
+                        _updated_by,
+                        _access,
+                        left_id,
+                        right_id,
+                        record_ref
+                    )
+                    SELECT
+                        uuid_generate_v4() as _id,
+                        '' as _database_id,
+                        u.id as _owner_id,
+                        current_timestamp as _created_at,
+                        u.id as _created_by,
+                        current_timestamp as _updated_at,
+                        u.id as _updated_by,
+                        '[]'::jsonb as _access,
+                        u.id as left_id,
+                        :my_user_id as right_id,
+                        record_table._id as record_ref
+                    FROM {db_name}.{record_type} record_table,
+                         {db_name}._user u
+                    WHERE record_table._owner_id = :my_user_id
+                    AND u.id in :my_friend_ids
+                    AND NOT EXISTS (
+                        SELECT *
+                        FROM {db_name}.{table_name}
+                        WHERE right_id = :my_user_id
+                        AND left_id IN :my_friend_ids
+                        AND record_ref IN (record_table._id)
+                    )
+                '''.format(
+                    db_name=DB_NAME,
+                    table_name=table_name,
+                    record_type=record_type
+                ))
+                conn.execute(
+                    create_friends_to_my_records_index_sql,
+                    my_user_id=my_user_id,
+                    my_friend_ids=my_friend_ids_tuple
                 )
-                SELECT
-                    uuid_generate_v4() as _id,
-                    '' as _database_id,
-                    u.id as _owner_id,
-                    current_timestamp as _created_at,
-                    u.id as _created_by,
-                    current_timestamp as _updated_at,
-                    u.id as _updated_by,
-                    '[]'::jsonb as _access,
-                    u.id as left_id,
-                    :my_user_id as right_id,
-                    record_table._id as record_ref
-                FROM {db_name}.{record_type} record_table,
-                     {db_name}._user u
-                WHERE record_table._owner_id = :my_user_id
-                AND u.id in :my_friend_ids
-                AND NOT EXISTS (
-                    SELECT *
-                    FROM {db_name}.{table_name}
-                    WHERE right_id = :my_user_id
-                    AND left_id IN :my_friend_ids
-                    AND record_ref IN (record_table._id)
-                )
-            '''.format(
-                db_name=DB_NAME,
-                table_name=table_name,
-                record_type=record_type
-            ))
-            conn.execute(
-                create_friends_to_my_records_index_sql,
-                my_user_id=my_user_id,
-                my_friend_ids=my_friend_ids_tuple
-            )
 
 
 @op('social_feed:query_my_friends_records', user_required=True)
@@ -385,10 +414,18 @@ def create_index_for_followee(followees):
                     :my_user_id as _updated_by,
                     '[]'::jsonb as _access,
                     :my_user_id as left_id,
-                    _owner_id as right_id,
-                    _id as record_ref
+                    record_table._owner_id as right_id,
+                    record_table._id as record_ref
                 FROM {db_name}.{record_type} record_table
-                WHERE _owner_id in :my_followees_ids
+                JOIN {db_name}.user user_table
+                ON (
+                    record_table._owner_id = user_table._id
+                    AND COALESCE(
+                            user_table.social_feed_fanout_policy,
+                            :default_fanout_policy ::jsonb
+                        ) @> '{req_fanout_policy}'::jsonb IS TRUE
+                )
+                WHERE record_table._owner_id in :my_followees_ids
                 AND NOT EXISTS (
                     SELECT *
                     FROM {db_name}.{table_name}
@@ -399,12 +436,14 @@ def create_index_for_followee(followees):
             '''.format(
                 db_name=DB_NAME,
                 table_name=table_name,
-                record_type=record_type
+                record_type=record_type,
+                req_fanout_policy='{"following": true}'
             ))
             conn.execute(
                 create_my_followees_records_index_sql,
                 my_user_id=my_user_id,
-                my_followees_ids=my_followees_ids_tuple
+                my_followees_ids=my_followees_ids_tuple,
+                default_fanout_policy=SOCIAL_FEED_FANOUT_POLICY_JSON_STR
             )
 
 
@@ -618,6 +657,16 @@ def register_after_save_add_record_to_index_for_friends(record_type):
         record_id = record.id.key
         record_owner_id = record.owner_id
 
+        should_index = should_record_be_indexed(
+            DB_NAME,
+            SOCIAL_FEED_FANOUT_POLICY,
+            db,
+            record_owner_id=record_owner_id,
+            relation='friends'
+        )
+        if not should_index:
+            return
+
         table_name = name_for_friends_relation_index(
             prefix=SOCIAL_FEED_TABLE_PREFIX,
             record_type=record_type
@@ -680,6 +729,17 @@ def register_after_save_add_record_to_index_for_followers(record_type):
 
         record_id = record.id.key
         record_owner_id = record.owner_id
+
+        should_index = should_record_be_indexed(
+            DB_NAME,
+            SOCIAL_FEED_FANOUT_POLICY,
+            db,
+            record_owner_id=record_owner_id,
+            relation='following'
+        )
+        if not should_index:
+            return
+
 
         table_name = name_for_followings_relation_index(
             prefix=SOCIAL_FEED_TABLE_PREFIX,

@@ -702,6 +702,7 @@ def remove_relation_index_if_fanout_policy_change_to_false(conn, relation,
     ))
     conn.execute(remove_feed_index_sql)
 
+
 def reindex_mutual_relation_index_if_fanout_policy_change_to_true(conn,
                                                                   relation,
                                                                   record_type):
@@ -777,9 +778,10 @@ def reindex_mutual_relation_index_if_fanout_policy_change_to_true(conn,
     conn.execute(reindex_feed_sql)
 
 
-def reindex_outward_relation_index_if_fanout_policy_change_to_true(conn,
-                                                                   relation,
-                                                                   record_type):
+def reindex_outward_relation_index_if_fanout_policy_change_to_true(
+        conn,
+        relation,
+        record_type):
     table_name = name_for_relation_index(
         prefix=SOCIAL_FEED_TABLE_PREFIX,
         relation=relation,
@@ -998,7 +1000,6 @@ def register_after_save_add_record_to_index_for_followers(record_type):
         )
         if not should_index:
             return
-
 
         table_name = name_for_followings_relation_index(
             prefix=SOCIAL_FEED_TABLE_PREFIX,

@@ -54,4 +54,3 @@ def setEnableToFanoutToRelation(db_name, conn, relation, user_id, enable):
         new_fanout_policy=json.dumps(new_fanout_policy),
         user_id=user_id
     )
-

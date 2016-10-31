@@ -209,7 +209,7 @@ def social_feed_create_index_for_friends(maybe_my_friends):
                     AND COALESCE(
                             user_table.social_feed_fanout_policy,
                             '{default_fanout_policy}'::jsonb
-                        ) @> '{req_fanout_policy}'::jsonb IS TRUE
+                        ) @> '{req_fanout_policy}'::jsonb
                 )
                 WHERE record_table._owner_id in :my_friend_ids
                 AND NOT EXISTS (
@@ -437,7 +437,7 @@ def create_index_for_followee(followees):
                     AND COALESCE(
                             user_table.social_feed_fanout_policy,
                             '{default_fanout_policy}'::jsonb
-                        ) @> '{req_fanout_policy}'::jsonb IS TRUE
+                        ) @> '{req_fanout_policy}'::jsonb
                 )
                 WHERE record_table._owner_id in :my_followees_ids
                 AND NOT EXISTS (

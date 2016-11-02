@@ -135,6 +135,36 @@ function SkygearSocialFeedContainer() {
       return skygear.lambda('social_feed:reindex_for_followees');
     };
 
+  this.enableFanoutToFriends = function enableFanoutToFriends() {
+    return this.setEnableFanoutToFriends(true);
+  };
+
+  this.disableFanoutToFriends = function disableFanoutToFriends() {
+    return this.setEnableFanoutToFriends(false);
+  };
+
+  this.setEnableFanoutToFriends = function setEnableFanoutToFriends(enable) {
+    return skygear.lambda('social_feed:setEnableFanoutToRelation', [
+      'friends',
+      enable
+    ]);
+  };
+
+  this.enableFanoutToFollowers = function enableFanoutToFollowers() {
+    return this.setEnableFanoutToFollowers(true);
+  };
+
+  this.disableFanoutToFollowers = function disableFanoutToFollowers() {
+    return this.setEnableFanoutToFollowers(false);
+  };
+
+  this.setEnableFanoutToFollowers =
+    function setEnableFanoutToFollowers(enable) {
+      return skygear.lambda('social_feed:setEnableFanoutToRelation', [
+        'following',
+        enable
+      ]);
+    };
 }
 
 module.exports = new SkygearSocialFeedContainer();

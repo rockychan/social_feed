@@ -89,7 +89,9 @@
       </div>
       <div>
         <button onclick="postSomething()">Post something...</button><br>
-        <button onclick="reindex()">Reindex my friends' posts</button>
+        <button onclick="reindex()">Reindex my friends' posts</button><br>
+        <button onclick="enableFanout()">Enable Fanout</button>
+        <button onclick="disableFanout()">Disable Fanout</button>
       </div>
       <div id="all-users">
         <h3>All Users</h3>
@@ -152,6 +154,14 @@
 
       function reindex() {
         demo.reindex();
+      }
+
+      function enableFanout() {
+        demo.enableFanout();  
+      }
+
+      function disableFanout() {
+        demo.disableFanout();
       }
     </script>
     <script>

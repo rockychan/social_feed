@@ -53,6 +53,7 @@ services:
       API_KEY: my_skygear_key
       MASTER_KEY: my_master_key
       SKYGEAR_SOCIAL_FEED_RECORD_TYPES: '["array", "of", "your", "record"]'
+      SKYGEAR_SOCIAL_FEED_FANOUT_POLICY: '{"friends": true, "following": true}'
 
 # The volume container for skygear
 volumes:

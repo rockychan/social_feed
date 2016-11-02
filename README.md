@@ -4,6 +4,7 @@
 The plugin is configured by environment variables.
 
 * `SKYGEAR_SOCIAL_FEED_RECORD_TYPES` - String of array of your record types which you want them to be indexed
+* `SKYGEAR_SOCIAL_FEED_FANOUT_POLICY` - Json string of record fanout policy 
 
 ## Initialization
 
@@ -117,6 +118,30 @@ Reindex your index to your friends' records
 
 ### reindexSocialFeedIndexForFollowings()
 Reindex your index to your followees' records
+
+| Param  | Type                | Description  |
+| ------ | ------------------- | ------------ |
+
+### enableFanoutToFriends()
+Enable your records fanout to your friends' feed
+
+| Param  | Type                | Description  |
+| ------ | ------------------- | ------------ |
+
+### disableFanoutToFriends()
+Disable your records fanout to your friends' feed
+
+| Param  | Type                | Description  |
+| ------ | ------------------- | ------------ |
+
+### enableFanoutToFollowers()
+Enable your records fanout to your followers' feed
+
+| Param  | Type                | Description  |
+| ------ | ------------------- | ------------ |
+
+### disableFanoutToFollowers()
+Disable your records fanout to your followers' feed
 
 | Param  | Type                | Description  |
 | ------ | ------------------- | ------------ |

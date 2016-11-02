@@ -168,6 +168,14 @@ class Demo {
     });
   }
 
+  enableFanout() {
+    this.plugin.enableFanoutToFollowers();
+  }
+
+  disableFanout() {
+    this.plugin.disableFanoutToFriends();
+  }
+
   removeConfigSkygearSection() {
     removeElement(this.$configSkygearSection);
     this.$configSkygearSection = null;

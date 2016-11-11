@@ -23,6 +23,8 @@ class Demo {
     this.$allMyFriends = $('my-friends');
 
     this.$allMyFriendsPosts = $('all-my-friends-posts');
+
+    this.$fanoutPolicy = $('fanoutPolicy');
   }
 
   configSkygear(endPoint, apiKey) {
@@ -59,6 +61,7 @@ class Demo {
       this.removeLoginSection();
       this.showAfterLoginSection();
       this.displayUser();
+      this.getUserFanoutPolicy();
     }, (e) => {
       console.log(e);
       alert('Cannot login for a moment');
@@ -168,12 +171,22 @@ class Demo {
     });
   }
 
+  getUserFanoutPolicy() {
+    this.plugin.getUserFanoutPolicy().then((response) => {
+      this.$fanoutPolicy.innerHTML = JSON.stringify(response);
+    });
+  }
+
   enableFanout() {
-    this.plugin.enableFanoutToFollowers();
+    this.plugin.enableFanoutToFriends().then(() => {
+      this.getUserFanoutPolicy();
+    });
   }
 
   disableFanout() {
-    this.plugin.disableFanoutToFriends();
+    this.plugin.disableFanoutToFriends().then(() => {
+      this.getUserFanoutPolicy();
+    });
   }
 
   removeConfigSkygearSection() {

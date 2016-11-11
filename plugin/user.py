@@ -8,6 +8,7 @@ from skygear.utils import db
 
 from .options import (
     DB_NAME,
+    SOCIAL_FEED_FANOUT_POLICY,
 )
 
 
@@ -62,3 +63,23 @@ def register_set_enable_fanout_to_relation():
                 fanout_policy=json.dumps(fanout_policy),
                 user_id=my_user_id
             )
+
+
+def register_get_user_fanout_policy():
+    @op('social_feed:getUserFanoutPolicy', user_required=True)
+    def get_user_fanout_policy():
+        with db.conn() as conn:
+            my_user_id = skygear.utils.context.current_user_id()
+            get_user_fanout_policy_sql = sa.text('''
+                SELECT social_feed_fanout_policy as fanout_policy
+                FROM {db_name}.user
+                WHERE _id=:user_id
+            '''.format(db_name=DB_NAME))
+            fanout_policy = conn.execute(
+                get_user_fanout_policy_sql,
+                user_id=my_user_id
+            ).scalar() or SOCIAL_FEED_FANOUT_POLICY
+
+        return {
+            'fanout_policy': fanout_policy,
+        }

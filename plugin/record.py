@@ -14,6 +14,10 @@ from .options import (
     SOCIAL_FEED_FANOUT_POLICY,
 )
 
+from .query import (
+    generate_skygear_query_from_indexed_ids,
+)
+
 from .table_name import (
     name_for_followings_relation_index,
     name_for_friends_relation_index
@@ -46,35 +50,15 @@ def register_query_my_friends_records():
 
             records_ids = [record.id for record in results]
 
-            if 'predicate' in serializedSkygearQuery:
-                pass
-                original_predicate = serializedSkygearQuery['predicate']
-                serializedSkygearQuery['predicate'] = [
-                    'and',
-                    [
-                        'in',
-                        {
-                            '$type': 'keypath',
-                            '$val': '_id'
-                        },
-                        records_ids
-                    ],
-                    original_predicate
-                ]
-            else:
-                serializedSkygearQuery['predicate'] = [
-                    'in',
-                    {
-                        '$type': 'keypath',
-                        '$val': '_id'
-                    },
-                    records_ids
-                ]
+            query = generate_skygear_query_from_indexed_ids(
+                serializedSkygearQuery,
+                records_ids
+            )
 
             container = SkygearContainer(api_key=options.apikey)
             return container.send_action(
                 'record:query',
-                serializedSkygearQuery
+                query
             )
 
 
@@ -100,35 +84,15 @@ def register_query_my_followees_records():
 
             records_ids = [record.id for record in results]
 
-            if 'predicate' in serializedSkygearQuery:
-                pass
-                original_predicate = serializedSkygearQuery['predicate']
-                serializedSkygearQuery['predicate'] = [
-                    'and',
-                    [
-                        'in',
-                        {
-                            '$type': 'keypath',
-                            '$val': '_id'
-                        },
-                        records_ids
-                    ],
-                    original_predicate
-                ]
-            else:
-                serializedSkygearQuery['predicate'] = [
-                    'in',
-                    {
-                        '$type': 'keypath',
-                        '$val': '_id'
-                    },
-                    records_ids
-                ]
+            query = generate_skygear_query_from_indexed_ids(
+                serializedSkygearQuery,
+                records_ids
+            )
 
             container = SkygearContainer(api_key=options.apikey)
             return container.send_action(
                 'record:query',
-                serializedSkygearQuery
+                query
             )
 
 

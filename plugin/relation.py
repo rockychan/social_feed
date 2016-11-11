@@ -34,7 +34,7 @@ RELATION_TABLE_MAP = {
 def register_create_index_for_friends():
     @op('social_feed:create_index_for_friends', user_required=True)
     def social_feed_create_index_for_friends(maybe_my_friends):
-        if len(maybe_my_friends) <= 0:
+        if not maybe_my_friends:
             return
 
         with db.conn() as conn:
@@ -59,7 +59,7 @@ def register_create_index_for_friends():
                 maybe_my_friend_ids=maybe_my_friend_ids_tuple
             )
             my_friend_ids = [user.id for user in results]
-            if len(my_friend_ids) <= 0:
+            if not my_friend_ids:
                 return
             my_friend_ids_tuple = tuple(my_friend_ids)
 
@@ -186,7 +186,7 @@ def register_create_index_for_friends():
 def register_create_index_for_followee():
     @op('social_feed:create_index_for_followees', user_required=True)
     def create_index_for_followee(followees):
-        if len(followees) <= 0:
+        if not followees:
             return
 
         with db.conn() as conn:
@@ -260,7 +260,7 @@ def register_create_index_for_followee():
 def register_remove_index_for_friends():
     @op('social_feed:remove_index_for_friends', user_required=True)
     def remove_index_for_friends(friends):
-        if len(friends) <= 0:
+        if not friends:
             return
 
         with db.conn() as conn:

@@ -21,7 +21,7 @@ def should_record_be_indexed(db_name, default_fanout_policy,
     user_fanout_policy = db.execute(
         get_user_fanout_policy_sql,
         user_id=user_id
-    ).first()[0]
+    ).scalar()
 
     if user_fanout_policy is not None:
         if relation in user_fanout_policy:
@@ -48,23 +48,17 @@ def register_set_enable_fanout_to_relation():
             fanout_policy = conn.execute(
                 get_user_fanout_policy_sql,
                 user_id=my_user_id
-            ).first()[0]
-            if fanout_policy is None:
-                new_fanout_policy = {
-                    relation: enable
-                }
-            else:
-                new_fanout_policy = fanout_policy
-                new_fanout_policy[relation] = enable
+            ).scalar() or {}
+            fanout_policy[relation] = enable
 
             update_user_fanout_policy_sql = sa.text('''
                 UPDATE {db_name}.user
                 SET social_feed_fanout_policy_is_dirty = TRUE,
-                social_feed_fanout_policy = :new_fanout_policy ::jsonb
+                social_feed_fanout_policy = :fanout_policy ::jsonb
                 WHERE _id = :user_id
             '''.format(db_name=DB_NAME))
             conn.execute(
                 update_user_fanout_policy_sql,
-                new_fanout_policy=json.dumps(new_fanout_policy),
+                fanout_policy=json.dumps(fanout_policy),
                 user_id=my_user_id
             )

@@ -29,6 +29,7 @@ from .table_name import (
 )
 from .user import (
     register_set_enable_fanout_to_relation,
+    register_get_user_fanout_policy,
 )
 
 SKYGEAR_APP_NAME = os.getenv('APP_NAME', 'my_skygear_app')
@@ -149,5 +150,6 @@ register_reindex_for_friends()
 register_reindex_for_followees()
 
 register_set_enable_fanout_to_relation()
+register_get_user_fanout_policy()
 
 register_update_index_if_fanout_policy_change()

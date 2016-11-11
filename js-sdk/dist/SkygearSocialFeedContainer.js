@@ -165,6 +165,11 @@ function SkygearSocialFeedContainer() {
         enable
       ]);
     };
+
+  this.getUserFanoutPolicy = function getUserFanoutPolicy() {
+    return skygear.lambda('social_feed:getUserFanoutPolicy');
+  };
+
 }
 
 module.exports = new SkygearSocialFeedContainer();

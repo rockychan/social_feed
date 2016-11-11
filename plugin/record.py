@@ -47,7 +47,6 @@ def register_query_my_friends_records():
             records_ids = [record.id for record in results]
 
             if 'predicate' in serializedSkygearQuery:
-                pass
                 original_predicate = serializedSkygearQuery['predicate']
                 serializedSkygearQuery['predicate'] = [
                     'and',
@@ -101,7 +100,6 @@ def register_query_my_followees_records():
             records_ids = [record.id for record in results]
 
             if 'predicate' in serializedSkygearQuery:
-                pass
                 original_predicate = serializedSkygearQuery['predicate']
                 serializedSkygearQuery['predicate'] = [
                     'and',

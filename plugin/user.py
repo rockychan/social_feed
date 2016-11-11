@@ -21,7 +21,7 @@ def should_record_be_indexed(db_name, default_fanout_policy,
     user_fanout_policy = db.execute(
         get_user_fanout_policy_sql,
         user_id=user_id
-    ).first()[0]
+    ).scalar()
 
     if user_fanout_policy is not None:
         if relation in user_fanout_policy:
@@ -48,7 +48,7 @@ def register_set_enable_fanout_to_relation():
             fanout_policy = conn.execute(
                 get_user_fanout_policy_sql,
                 user_id=my_user_id
-            ).first()[0]
+            ).scalar()
             if fanout_policy is None:
                 new_fanout_policy = {
                     relation: enable
